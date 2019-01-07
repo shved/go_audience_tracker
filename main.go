@@ -5,41 +5,44 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 type session struct {
-	videoID    int
-	customerID int
+	VideoID    uint64
+	CustomerID uint64
 }
 
+var sessions []session
+
 func pulse(w http.ResponseWriter, r *http.Request) {
-	log.Printf("pulse registered on %s", r.URL.Path)
-	values, err := url.ParseQuery(r.URL.RawQuery)
-	if err != nil {
-		log.Fatal(err)
-	}
-	customerID, err := strconv.Atoi(values.Get("customer_id"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	videoID, err := strconv.Atoi(values.Get("video_id"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("with customer id %d", customerID)
-	log.Printf("with video id %d", videoID)
+	customerID, videoID := parseQuery(r.URL.RawQuery)
+	newSession := session{VideoID: videoID, CustomerID: customerID}
+	mutex := &sync.Mutex{}
+
+	mutex.Lock()
+	sessions = append(sessions, newSession)
+	mutex.Unlock()
+
+	log.Printf("pulse with customer %d and video %d", newSession.CustomerID, newSession.VideoID)
+}
+
+func parseQuery(rawQuery string) (customerID, videoID uint64) {
+	values, _ := url.ParseQuery(rawQuery)
+	customerID, _ = strconv.ParseInt(values.Get("customer_id"))
+	videoID, _ = strconv.ParseInt(values.Get("video_id"))
+	return
 }
 
 func videoStat(w http.ResponseWriter, r *http.Request) {
-	log.Printf("video stat called")
+	log.Println("video stat called: ", len(sessions))
 }
 
 func customerStat(w http.ResponseWriter, r *http.Request) {
-	log.Printf("customer stat called")
+	log.Println("customer stat called: ", len(sessions))
 }
 
 func main() {
-	// var sessions []session
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/pulse", pulse)
