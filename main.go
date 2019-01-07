@@ -5,15 +5,12 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 )
 
-type session struct {
-	VideoID    uint64
-	CustomerID uint64
-}
-
-var sessions []session
+var customers []uint32
+var videos []uint32
 
 func pulse(w http.ResponseWriter, r *http.Request) {
 	customerID, videoID := parseQuery(r.URL.RawQuery)
@@ -21,7 +18,8 @@ func pulse(w http.ResponseWriter, r *http.Request) {
 	mutex := &sync.Mutex{}
 
 	mutex.Lock()
-	sessions = append(sessions, newSession)
+	customers[customerID] = append(customers[customerID], videoID)
+	videos[customerID] = append(videos[vidoeID], customerID)
 	mutex.Unlock()
 
 	log.Printf("pulse with customer %d and video %d", newSession.CustomerID, newSession.VideoID)
@@ -35,11 +33,31 @@ func parseQuery(rawQuery string) (customerID, videoID uint64) {
 }
 
 func videoStat(w http.ResponseWriter, r *http.Request) {
-	log.Println("video stat called: ", len(sessions))
+	mutex := &sync.Mutex{}
+	videoID := parseIDFromURL(r.URL.Path)
+
+	mutex.Lock()
+	count := len(videos[videoID])
+	mutex.Unlock()
+
+	log.Println("video stat called: ", count)
 }
 
 func customerStat(w http.ResponseWriter, r *http.Request) {
-	log.Println("customer stat called: ", len(sessions))
+	mutex := &sync.Mutex{}
+	customerID := parseIDFromURL(r.URL.Path)
+
+	mutex.Lock()
+	count := len(customers[customerID])
+	mutex.Unlock()
+
+	log.Println("customer stat called: ", count)
+}
+
+func parseIDFromURL(path string) (id uint64) {
+	stringSlice := strings.Split(path, "/")
+	id, _ = strconv.ParseInt(stringSlice[1])
+	return
 }
 
 func main() {
