@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/deckarep/golang-set"
 	"log"
 	"net/http"
 	"net/url"
@@ -37,13 +36,13 @@ func customerCount(w http.ResponseWriter, r *http.Request) {
 	customerID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
-	videoIDs := idsToInterfaceSlice(customers[customerID])
+	videoIDs := customers[customerID]
 	mutex.Unlock()
 
-	set := mapset.NewSetFromSlice(videoIDs)
-	count := set.Cardinality()
+	set := uniqueSet(videoIDs)
+	count := len(set)
 
-	log.Println("customer stat called: ", count)
+	log.Println("customer stat called: ", customerID, count)
 }
 
 func videoCount(w http.ResponseWriter, r *http.Request) {
@@ -51,28 +50,41 @@ func videoCount(w http.ResponseWriter, r *http.Request) {
 	videoID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
-	customerIDs := idsToInterfaceSlice(videos[videoID])
+	customerIDs := videos[videoID]
 	mutex.Unlock()
 
-	set := mapset.NewSetFromSlice(customerIDs)
-	count := set.Cardinality()
+	set := uniqueSet(customerIDs)
+	count := len(set)
 
-	log.Println("video stat called: ", count)
+	log.Println("video stat called: ", videoID, count)
 }
 
-func idsToInterfaceSlice(ids []int) []interface{} {
-	s := make([]interface{}, len(ids))
-	for i, v := range ids {
-		s[i] = interface{}(v)
+func uniqueSet(slice []int) []int {
+	unique := make([]int, 0, len(slice))
+	uniqueMap := make(map[int]bool)
+
+	for _, val := range slice {
+		if _, ok := uniqueMap[val]; !ok {
+			uniqueMap[val] = true
+			unique = append(unique, val)
+		}
 	}
-	return s
+
+	return unique
 }
 
 func parseIDFromURL(path string) (id int) {
+	log.Println(path)
 	stringSlice := strings.Split(path, "/")
-	id, _ = strconv.Atoi(stringSlice[1])
+	log.Println(stringSlice)
+	id, _ = strconv.Atoi(stringSlice[2])
+	log.Printf("ID %d, %T", id, id)
 	return
 }
+
+// func sessionExpireTimeout(customerID, videoID int) {
+// 	time.Sleep(6 * time.Second)
+// }
 
 func main() {
 	mux := http.NewServeMux()
