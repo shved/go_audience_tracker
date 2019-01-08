@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var customers = make(map[int][]int)
@@ -15,6 +16,8 @@ var videos = make(map[int][]int)
 func pulse(w http.ResponseWriter, r *http.Request) {
 	customerID, videoID := parseQuery(r.URL.RawQuery)
 	mutex := &sync.Mutex{}
+
+	go sessionExpireTimeout(customerID, videoID)
 
 	mutex.Lock()
 	customers[customerID] = append(customers[customerID], videoID)
@@ -74,17 +77,37 @@ func uniqueSet(slice []int) []int {
 }
 
 func parseIDFromURL(path string) (id int) {
-	log.Println(path)
 	stringSlice := strings.Split(path, "/")
-	log.Println(stringSlice)
 	id, _ = strconv.Atoi(stringSlice[2])
-	log.Printf("ID %d, %T", id, id)
 	return
 }
 
-// func sessionExpireTimeout(customerID, videoID int) {
-// 	time.Sleep(6 * time.Second)
-// }
+func sessionExpireTimeout(customerID, videoID int) {
+	time.Sleep(6 * time.Second)
+	mutex := &sync.Mutex{}
+
+	mutex.Lock()
+	videoIndex := indexOf(customers[customerID], videoID)
+	customerIndex := indexOf(videos[videoID], customerID)
+	customers[customerID] = deleteAt(customers[customerID], videoIndex)
+	videos[videoID] = deleteAt(videos[videoID], customerIndex)
+	mutex.Unlock()
+}
+
+func indexOf(slice []int, el int) int {
+	for i, v := range slice {
+		if v == el {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func deleteAt(slice []int, index int) (newSlice []int) {
+	newSlice = append(slice[:i], slice[i+1:]...)
+	return
+}
 
 func main() {
 	mux := http.NewServeMux()
