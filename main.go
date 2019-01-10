@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-var customers = make(map[int][]int)
-var videos = make(map[int][]int)
+var customers = make(map[int]map[int]int)
+var videos = make(map[int]map[int]int)
 
 func pulse(w http.ResponseWriter, r *http.Request) {
 	customerID, videoID := parseQuery(r.URL.RawQuery)
@@ -20,11 +20,24 @@ func pulse(w http.ResponseWriter, r *http.Request) {
 	go sessionExpireTimeout(customerID, videoID)
 
 	mutex.Lock()
-	customers[customerID] = append(customers[customerID], videoID)
-	videos[customerID] = append(videos[videoID], customerID)
+	storeSession(customerID, videoID)
 	mutex.Unlock()
 
 	log.Printf("pulse with customer %d and video %d", customerID, videoID)
+}
+
+func storeSession(customerID, videoID int) {
+	if customers[customerID] == nil {
+		customers[customerID] = make(map[int]int)
+	}
+
+	customers[customerID][videoID]++
+
+	if videos[videoID] == nil {
+		videos[videoID] = make(map[int]int)
+	}
+
+	videos[videoID][customerID]++
 }
 
 func parseQuery(rawQuery string) (customerID, videoID int) {
@@ -39,11 +52,8 @@ func customerCount(w http.ResponseWriter, r *http.Request) {
 	customerID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
-	videoIDs := customers[customerID]
+	count := len(customers[customerID])
 	mutex.Unlock()
-
-	set := uniqueSet(videoIDs)
-	count := len(set)
 
 	log.Println("customer stat called: ", customerID, count)
 }
@@ -53,27 +63,10 @@ func videoCount(w http.ResponseWriter, r *http.Request) {
 	videoID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
-	customerIDs := videos[videoID]
+	count := len(videos[videoID])
 	mutex.Unlock()
 
-	set := uniqueSet(customerIDs)
-	count := len(set)
-
 	log.Println("video stat called: ", videoID, count)
-}
-
-func uniqueSet(slice []int) []int {
-	unique := make([]int, 0, len(slice))
-	uniqueMap := make(map[int]bool)
-
-	for _, val := range slice {
-		if _, ok := uniqueMap[val]; !ok {
-			uniqueMap[val] = true
-			unique = append(unique, val)
-		}
-	}
-
-	return unique
 }
 
 func parseIDFromURL(path string) (id int) {
@@ -87,26 +80,25 @@ func sessionExpireTimeout(customerID, videoID int) {
 	mutex := &sync.Mutex{}
 
 	mutex.Lock()
-	videoIndex := indexOf(customers[customerID], videoID)
-	customerIndex := indexOf(videos[videoID], customerID)
-	customers[customerID] = deleteAt(customers[customerID], videoIndex)
-	videos[videoID] = deleteAt(videos[videoID], customerIndex)
-	mutex.Unlock()
-}
-
-func indexOf(slice []int, el int) int {
-	for i, v := range slice {
-		if v == el {
-			return i
-		}
+	customers[customerID][videoID]--
+	if customers[customerID][videoID] < 1 {
+		delete(customers[customerID], videoID)
+	}
+	if len(customers[customerID]) == 0 {
+		delete(customers, customerID)
 	}
 
-	return -1
-}
+	videos[videoID][customerID]--
+	if videos[videoID][customerID] < 1 {
+		delete(videos[videoID], customerID)
+	}
+	if len(videos[videoID]) == 0 {
+		delete(videos, videoID)
+	}
+	mutex.Unlock()
 
-func deleteAt(slice []int, index int) (newSlice []int) {
-	newSlice = append(slice[:i], slice[i+1:]...)
-	return
+	log.Println(customers)
+	log.Println(videos)
 }
 
 func main() {
