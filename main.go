@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
@@ -29,6 +30,7 @@ func pulse(w http.ResponseWriter, r *http.Request) {
 	mutex.Unlock()
 
 	log.Printf("pulse with customer %d and video %d", customerID, videoID)
+	w.WriteHeader(200)
 }
 
 func storeSession(customerID, videoID int) {
@@ -60,6 +62,14 @@ func customerCount(w http.ResponseWriter, r *http.Request) {
 	mutex.Unlock()
 
 	log.Println("customer stat called: ", customerID, count)
+
+	responseBody, _ := json.Marshal(map[string]interface{}{
+		"count": count,
+	})
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseBody)
 }
 
 func videoCount(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +80,14 @@ func videoCount(w http.ResponseWriter, r *http.Request) {
 	mutex.Unlock()
 
 	log.Println("video stat called: ", videoID, count)
+
+	responseBody, _ := json.Marshal(map[string]interface{}{
+		"count": count,
+	})
+
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseBody)
 }
 
 func parseIDFromURL(path string) (id int) {
