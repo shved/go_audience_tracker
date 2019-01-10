@@ -15,10 +15,15 @@ var videos = make(map[int]map[int]int)
 
 func pulse(w http.ResponseWriter, r *http.Request) {
 	customerID, videoID := parseQuery(r.URL.RawQuery)
+
+	sessionTimer := time.NewTimer(6 * time.Second)
+
+	go func() {
+		<-sessionTimer.C
+		deleteSession(customerID, videoID)
+	}()
+
 	mutex := &sync.Mutex{}
-
-	go sessionExpireTimeout(customerID, videoID)
-
 	mutex.Lock()
 	storeSession(customerID, videoID)
 	mutex.Unlock()
@@ -75,11 +80,11 @@ func parseIDFromURL(path string) (id int) {
 	return
 }
 
-func sessionExpireTimeout(customerID, videoID int) {
-	time.Sleep(6 * time.Second)
+func deleteSession(customerID, videoID int) {
 	mutex := &sync.Mutex{}
 
 	mutex.Lock()
+
 	customers[customerID][videoID]--
 	if customers[customerID][videoID] < 1 {
 		delete(customers[customerID], videoID)
@@ -95,8 +100,8 @@ func sessionExpireTimeout(customerID, videoID int) {
 	if len(videos[videoID]) == 0 {
 		delete(videos, videoID)
 	}
-	mutex.Unlock()
 
+	mutex.Unlock()
 	log.Println(customers)
 	log.Println(videos)
 }
