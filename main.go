@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+var mutex = &sync.Mutex{}
 var customers = make(map[int]map[int]int)
 var videos = make(map[int]map[int]int)
 
@@ -23,7 +24,6 @@ func pulse(w http.ResponseWriter, r *http.Request) {
 		deleteSession(customerID, videoID)
 	}()
 
-	mutex := &sync.Mutex{}
 	mutex.Lock()
 	storeSession(customerID, videoID)
 	mutex.Unlock()
@@ -53,7 +53,6 @@ func parseQuery(rawQuery string) (customerID, videoID int) {
 }
 
 func customerCount(w http.ResponseWriter, r *http.Request) {
-	mutex := &sync.Mutex{}
 	customerID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
@@ -64,7 +63,6 @@ func customerCount(w http.ResponseWriter, r *http.Request) {
 }
 
 func videoCount(w http.ResponseWriter, r *http.Request) {
-	mutex := &sync.Mutex{}
 	videoID := parseIDFromURL(r.URL.Path)
 
 	mutex.Lock()
@@ -81,8 +79,6 @@ func parseIDFromURL(path string) (id int) {
 }
 
 func deleteSession(customerID, videoID int) {
-	mutex := &sync.Mutex{}
-
 	mutex.Lock()
 
 	customers[customerID][videoID]--
@@ -102,8 +98,9 @@ func deleteSession(customerID, videoID int) {
 	}
 
 	mutex.Unlock()
-	log.Println(customers)
-	log.Println(videos)
+
+	log.Println("CUSTOMERS COUNT:\t", len(customers))
+	log.Println("VIDEOS COUNT:\t", len(videos))
 }
 
 func main() {
