@@ -36,8 +36,6 @@ func pulse(w http.ResponseWriter, r *http.Request) {
 
 	storeSession(customerID, videoID)
 
-	w.WriteHeader(200)
-
 	log.Println("pulse registered for:", customerID, videoID)
 }
 
