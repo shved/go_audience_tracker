@@ -1,4 +1,4 @@
-package go_audience_tracker
+package main
 
 import (
 	"fmt"
@@ -36,3 +36,14 @@ func ExampleParseQuery() {
 	// 0 0
 	// 0 0
 }
+
+// func TestStoreSession(t *testing.T) {
+// 	customers[1] = make(map[int]int)
+// 	customers[1][1]++
+// 	videos[1] = make(map[int]int)
+// 	videos[1][1]++
+//
+// 	deleteSession(1, 1)
+// 	if len(sessions) > 0 || len(videos) > 0 {
+// 	}
+// }
