@@ -20,7 +20,17 @@ var state = struct {
 	videos:    make(map[int]map[int]int),
 }
 
-func pulse(w http.ResponseWriter, r *http.Request) {
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/pulse", pulseHandler)
+	mux.HandleFunc("/videos/", videoCountHandler)
+	mux.HandleFunc("/customers/", customerCountHandler)
+
+	log.Fatal(http.ListenAndServe(":9292", mux))
+}
+
+func pulseHandler(w http.ResponseWriter, r *http.Request) {
 	customerID, videoID := parseQuery(r.URL)
 	if customerID == 0 || videoID == 0 {
 		http.Error(w, "invalid request parameters", http.StatusBadRequest)
@@ -61,7 +71,7 @@ func parseQuery(urlObj *url.URL) (customerID, videoID int) {
 	return
 }
 
-func customerCount(w http.ResponseWriter, r *http.Request) {
+func customerCountHandler(w http.ResponseWriter, r *http.Request) {
 	customerID := parseIDFromURL(r.URL.Path)
 	if customerID == 0 {
 		http.Error(w, "invalid customer id", http.StatusBadRequest)
@@ -87,7 +97,7 @@ func customerCount(w http.ResponseWriter, r *http.Request) {
 	log.Printf("customer %d videos count %d", customerID, count)
 }
 
-func videoCount(w http.ResponseWriter, r *http.Request) {
+func videoCountHandler(w http.ResponseWriter, r *http.Request) {
 	videoID := parseIDFromURL(r.URL.Path)
 	if videoID == 0 {
 		http.Error(w, "invalid video id", http.StatusBadRequest)
@@ -140,14 +150,4 @@ func deleteSession(customerID, videoID int) {
 	state.Unlock()
 
 	log.Println("session deleted", customerID, videoID)
-}
-
-func main() {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/pulse", pulse)
-	mux.HandleFunc("/videos/", videoCount)
-	mux.HandleFunc("/customers/", customerCount)
-
-	log.Fatal(http.ListenAndServe(":9292", mux))
 }
