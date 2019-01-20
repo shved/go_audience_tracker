@@ -93,8 +93,7 @@ func TestCustomerCountHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	http.HandlerFunc(customerCountHandler).
-		ServeHTTP(rr, req)
+	http.HandlerFunc(customerCountHandler).ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Status code differs. Expected %d .\n Got %d instead", http.StatusOK, status)
@@ -123,8 +122,7 @@ func TestVideoCountHandler(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	http.HandlerFunc(videoCountHandler).
-		ServeHTTP(rr, req)
+	http.HandlerFunc(videoCountHandler).ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Status code differs. Expected %d .\n Got %d instead", http.StatusOK, status)
@@ -133,6 +131,45 @@ func TestVideoCountHandler(t *testing.T) {
 	expected := string(`{"count":2}`)
 	if rr.Body.String() != expected {
 		t.Errorf("Response body differs. Expected %s .\n Got %s instead", expected, rr.Body.String())
+	}
+}
+
+func TestPulseHandlerBadRequest(t *testing.T) {
+	req, err := http.NewRequest("GET", "/pulse/customer_id=&video_id=asdf", nil)
+	checkError(err, t)
+
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(pulseHandler).ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("Status code differs. Expected %d .\n Got %d instead", http.StatusBadRequest, status)
+	}
+}
+
+func TestCustomerCountHandlerBadRequest(t *testing.T) {
+	req, err := http.NewRequest("GET", "/customers/asdf", nil)
+	checkError(err, t)
+
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(customerCountHandler).ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("Status code differs. Expected %d .\n Got %d instead", http.StatusBadRequest, status)
+	}
+}
+
+func TestVideoCountHandlerBadRequest(t *testing.T) {
+	req, err := http.NewRequest("GET", "/videos/asdf", nil)
+	checkError(err, t)
+
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(videoCountHandler).ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Errorf("Status code differs. Expected %d .\n Got %d instead", http.StatusBadRequest, status)
 	}
 }
 
