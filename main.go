@@ -40,11 +40,11 @@ func pulseHandler(w http.ResponseWriter, r *http.Request) {
 
 	sessionTimer := time.NewTimer(6 * time.Second)
 
-	go func() {
+	go func(customerID, videoID int) {
 		storeSession(customerID, videoID)
 		<-sessionTimer.C
 		deleteSession(customerID, videoID)
-	}()
+	}(customerID, videoID)
 
 	w.WriteHeader(200)
 
