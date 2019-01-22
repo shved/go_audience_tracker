@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	_ "github.com/y0ssar1an/q"
 	"log"
 	"net/http"
 	"net/url"
