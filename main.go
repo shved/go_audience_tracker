@@ -1,3 +1,11 @@
+/*
+Audience tracker is a service for tracking client devcies via heartbeats (or pulses).
+It registers every get request comes into pulse path with customer_id and video_id parameter
+and stores it in state struct for six seconds.
+State has two separate maps of maps for customers and videos which are storing session counters for each
+customer/video pairs.
+Videos/customers endpoints then counts the needed map keys and returning corresponding counters.
+*/
 package main
 
 import (
